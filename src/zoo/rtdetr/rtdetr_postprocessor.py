@@ -45,7 +45,11 @@ class RTDETRPostProcessor(nn.Module):
         return f'use_focal_loss={self.use_focal_loss}, num_classes={self.num_classes}, num_top_queries={self.num_top_queries}'
     
     # def forward(self, outputs, orig_target_sizes):
-    def forward(self, outputs, orig_target_sizes: torch.Tensor):
+    def forward(self, outputs, orig_target_sizes: torch.Tensor,sub_seq_len=[]):
+        if len(sub_seq_len) == 0:
+            bs, ln = outputs['pred_logits'].shape[0], outputs['pred_logits'].shape[1]
+            sub_seq_len = [ln for _ in range(bs)]
+        x_num_query = max(sub_seq_len)
         logits, boxes = outputs['pred_logits'], outputs['pred_boxes']
         # orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)        
 
@@ -54,7 +58,7 @@ class RTDETRPostProcessor(nn.Module):
 
         if self.use_focal_loss:
             scores = F.sigmoid(logits)
-            scores, index = torch.topk(scores.flatten(1), self.num_top_queries, dim=-1)
+            scores, index = torch.topk(scores.flatten(1), x_num_query, dim=-1)
             # TODO for older tensorrt
             # labels = index % self.num_classes
             labels = mod(index, self.num_classes)
@@ -64,8 +68,8 @@ class RTDETRPostProcessor(nn.Module):
         else:
             scores = F.softmax(logits)[:, :, :-1]
             scores, labels = scores.max(dim=-1)
-            if scores.shape[1] > self.num_top_queries:
-                scores, index = torch.topk(scores, self.num_top_queries, dim=-1)
+            if scores.shape[1] > x_num_query:
+                scores, index = torch.topk(scores, x_num_query, dim=-1)
                 labels = torch.gather(labels, dim=1, index=index)
                 boxes = torch.gather(boxes, dim=1, index=index.unsqueeze(-1).tile(1, 1, boxes.shape[-1]))
         
@@ -80,8 +84,8 @@ class RTDETRPostProcessor(nn.Module):
                 .to(boxes.device).reshape(labels.shape)
 
         results = []
-        for lab, box, sco in zip(labels, boxes, scores):
-            result = dict(labels=lab, boxes=box, scores=sco)
+        for lab, box, sco, ln in zip(labels, boxes, scores, sub_seq_len):
+            result = dict(labels=lab[:ln], boxes=box[:ln], scores=sco[:ln])
             results.append(result)
         
         return results

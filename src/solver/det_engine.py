@@ -112,17 +112,21 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
 
     metric_logger = MetricLogger(delimiter="  ")
     header = 'Test:'
-    
+    mx = 3000
+    ic = -1
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
+        ic += 1
+        if ic >= mx:
+            break
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         outputs = model(samples)
-
+        sub_seq_len = outputs['aux_sub_seq_len']
         # TODO (lyuwenyu), fix dataset converted using `convert_to_coco_api`?
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
         
-        results = postprocessor(outputs, orig_target_sizes)
+        results = postprocessor(outputs, orig_target_sizes,sub_seq_len)
 
         # if 'segm' in postprocessor.keys():
         #     target_sizes = torch.stack([t["size"] for t in targets], dim=0)

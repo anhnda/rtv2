@@ -18,7 +18,10 @@ def main(onnx_path, engine_path, max_batchsize, opt_batchsize, min_batchsize, us
 
     parser = trt.OnnxParser(network, logger)
     config = builder.create_builder_config()
-    config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, True)
+    #print(trt.PreviewFeature)
+    #print(dir(trt.PreviewFeature))
+
+    #config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, True)
 
     if not os.path.isfile(onnx_path):
         raise FileNotFoundError(f"ONNX file not found: {onnx_path}")
@@ -31,8 +34,8 @@ def main(onnx_path, engine_path, max_batchsize, opt_batchsize, min_batchsize, us
             raise RuntimeError("Failed to parse ONNX file")
 
     config = builder.create_builder_config()
-    config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, True)
-    config.max_workspace_size = 1 << 30  # 1GB
+    #config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, True)
+    config.set_memory_pool_limit (trt.MemoryPoolType.WORKSPACE, 1 << 30)  # 1GB
     
     if use_fp16:
         if builder.platform_has_fast_fp16:
@@ -47,14 +50,14 @@ def main(onnx_path, engine_path, max_batchsize, opt_batchsize, min_batchsize, us
     config.add_optimization_profile(profile)
 
     print("[INFO] Building TensorRT engine...")
-    engine = builder.build_engine(network, config)
+    engine = builder.build_serialized_network(network, config)
 
     if engine is None:
         raise RuntimeError("Failed to build the engine.")
 
     print(f"[INFO] Saving engine to {engine_path}")
     with open(engine_path, "wb") as f:
-        f.write(engine.serialize())
+        f.write(engine)
     print("[INFO] Engine export complete.")
 
 

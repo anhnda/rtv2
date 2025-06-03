@@ -25,7 +25,7 @@ def main(args, ) -> None:
         if k not in ['update', ] and v is not None})
 
     cfg = YAMLConfig(args.config, **update_dict)
-    print('cfg: ', cfg.__dict__)
+    # print('cfg: ', cfg.__dict__)
 
     solver = TASKS[cfg.yaml_cfg['task']](cfg)
     

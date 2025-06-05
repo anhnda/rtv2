@@ -14,7 +14,7 @@ from typing import List
 
 from .denoising import get_contrastive_denoising_training_group
 from .utils import deformable_attention_core_func_v2, get_activation, inverse_sigmoid
-from .utils import bias_init_with_prob,get_k_tensor_constrained
+from .utils import bias_init_with_prob,get_k_tensor_constrained, hash_v
 
 from ...core import register
 
@@ -264,6 +264,7 @@ class TransformerDecoder(nn.Module):
         output = target
         for i, layer in enumerate(self.layers):
             sz = max(sub_seq_len)
+            sz = hash_v(sz)
             sub_seq_o = sub_seq_len.clone()
             ref_points_detach = ref_points_detach[:,:sz]
             output = output[:,:sz]
@@ -590,7 +591,7 @@ class RTDETRTransformerv2(nn.Module):
             self._get_decoder_input(memory, spatial_shapes, denoising_logits, denoising_bbox_unact)
         bs = init_ref_contents.shape[0]
         q = init_ref_contents.shape[1]
-        sub_seq_len = [q for _ in range(bs)]
+        sub_seq_len = torch.tensor([q] * bs, device=init_ref_contents.device, dtype=torch.long)
         # sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len)
 
         # decoder

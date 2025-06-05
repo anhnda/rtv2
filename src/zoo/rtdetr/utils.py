@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F 
 
-def get_k_tensor_constrained(ar, sub_seq, offset=20, lag=10, alpha=1, beta=0.4, gamma=0.5):
+def get_k_tensor_constrained(ar, sub_seq, offset=20, lag=10, alpha=1, beta=0.4, gamma=0.4):
     """
     Zero-warning ONNX version. Requires sub_seq to be a tensor for tracing.
     Call this version during ONNX export to eliminate all warnings.

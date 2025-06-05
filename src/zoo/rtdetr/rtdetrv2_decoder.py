@@ -242,7 +242,9 @@ class TransformerDecoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.eval_idx = eval_idx if eval_idx >= 0 else num_layers + eval_idx
-
+        self.n_query = 0
+        self.n_call = 0
+        self.n_last_query = 0
     def forward(self,
                 target,
                 ref_points_unact,
@@ -262,9 +264,12 @@ class TransformerDecoder(nn.Module):
         ref_points_detach = F.sigmoid(ref_points_unact)
 
         output = target
+        self.n_call += 1
+        c_sub = torch.tensor([100] * len(sub_seq_len), device=target.device)
         for i, layer in enumerate(self.layers):
             sz = max(sub_seq_len)
             sz = hash_v(sz)
+            self.n_query += sz / len(self.layers)
             sub_seq_o = sub_seq_len.clone()
             ref_points_detach = ref_points_detach[:,:sz]
             output = output[:,:sz]
@@ -276,14 +281,16 @@ class TransformerDecoder(nn.Module):
             inter_ref_bbox = F.sigmoid(bbox_head[i](output) + inverse_sigmoid(ref_points_detach))
             dec_out_logiti = score_head[i](output)
             m_v, m_ind = dec_out_logiti.max(-1)
-            sub_seq_len = get_k_tensor_constrained(m_v,offset=50, lag=40-i*8,sub_seq=sub_seq_len)
+            sub_seq_len = get_k_tensor_constrained(m_v,offset=50, lag=40-i*int(40/8),sub_seq=sub_seq_len)
             #sub_seq_len = [v.item() for v in sub_seq_len]
             pass
             if i == len(self.layers) - 1:
+                self.n_last_query += max(sub_seq_len)
                 pass
             else:
                 #sub_seq_len = torch.tensor([min(sub_seq_len[i]+90, sub_seq_o[i]) for i in range(len(sub_seq_len))], device=tgt.device)
-                sub_seq_len = torch.minimum(sub_seq_len+90, sub_seq_o)
+                sub_seq_len = torch.minimum(sub_seq_len + 50, sub_seq_o)
+                #sub_seq_len = torch.maximum(sub_seq_len, c_sub)
 
             if self.training:
                 dec_out_logits.append(score_head[i](output))

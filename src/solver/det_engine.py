@@ -139,6 +139,10 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
+    print(f"N_call: {model.decoder.decoder.n_call}, sum_q: {model.decoder.decoder.n_query: .2f} \n,\
+          n_last_query: {model.decoder.decoder.n_last_query} \n\
+          avg: {model.decoder.decoder.n_query/model.decoder.decoder.n_call: .2f} \n\
+          avg_last: {model.decoder.decoder.n_last_query / model.decoder.decoder.n_call :.2f}")
     if coco_evaluator is not None:
         coco_evaluator.synchronize_between_processes()
 

@@ -534,7 +534,7 @@ class RTDETRTransformerv2(nn.Module):
         if self.training:
             enc_topk_bboxes = F.sigmoid(enc_topk_bbox_unact)
             enc_topk_bboxes_list.append(enc_topk_bboxes)
-            enc_topk_logits_list.append(enc_topk_logits)
+        enc_topk_logits_list.append(enc_topk_logits)
 
         # if self.num_select_queries != self.num_queries:            
         #     raise NotImplementedError('')
@@ -599,7 +599,8 @@ class RTDETRTransformerv2(nn.Module):
         bs = init_ref_contents.shape[0]
         q = init_ref_contents.shape[1]
         sub_seq_len = torch.tensor([q] * bs, device=init_ref_contents.device, dtype=torch.long)
-        # sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len)
+        enc_topk_logits = torch.cat(enc_topk_logits_list)
+        sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len)
 
         # decoder
         out_bboxes, out_logits, sub_seq_len = self.decoder(

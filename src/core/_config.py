@@ -51,7 +51,8 @@ class BaseConfig(object):
 
         # runtime
         self.resume :str = None
-        self.tuning :str = None 
+        self.tuning :str = None
+        self.infer_adapt: bool = False 
 
         self.epoches :int = None
         self.last_epoch :int = -1

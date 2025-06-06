@@ -236,7 +236,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, hidden_dim, decoder_layer, num_layers, eval_idx=-1, infer_adapt=False):
+    def __init__(self, hidden_dim, decoder_layer, num_layers, eval_idx=-1, infer_adapt=False,offset=50,lag=40, alpha=1.0, beta=0.4, gamma=0.4):
         super(TransformerDecoder, self).__init__()
         self.layers = nn.ModuleList([copy.deepcopy(decoder_layer) for _ in range(num_layers)])
         self.hidden_dim = hidden_dim
@@ -246,6 +246,12 @@ class TransformerDecoder(nn.Module):
         self.n_call = 0
         self.n_last_query = 0
         self.infer_adapt = infer_adapt
+        self.offset=offset
+        self.lag = lag
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+
     def forward(self,
                 target,
                 ref_points_unact,
@@ -286,7 +292,9 @@ class TransformerDecoder(nn.Module):
             if self.infer_adapt:
                 dec_out_logiti = score_head[i](output)
                 m_v, m_ind = dec_out_logiti.max(-1)
-                sub_seq_len = get_k_tensor_constrained(m_v,offset=50, lag=40-i*int(40/8),sub_seq=sub_seq_len)
+                sub_seq_len = get_k_tensor_constrained(m_v,offset=self.offset, lag=self.lag-i*int(self.lag/5),sub_seq=sub_seq_len)
+
+                # sub_seq_len = get_k_tensor_constrained(m_v,offset=self.offset, lag=self.lag-i*int(self.lag/8),sub_seq=sub_seq_len)
             #sub_seq_len = [v.item() for v in sub_seq_len]
             pass
             if self.infer_adapt:
@@ -295,7 +303,7 @@ class TransformerDecoder(nn.Module):
                     pass
                 else:
                     #sub_seq_len = torch.tensor([min(sub_seq_len[i]+90, sub_seq_o[i]) for i in range(len(sub_seq_len))], device=tgt.device)
-                    sub_seq_len = torch.minimum(sub_seq_len + 50, sub_seq_o)
+                    sub_seq_len = torch.minimum(sub_seq_len + self.offset + self.lag, sub_seq_o)
                     #sub_seq_len = torch.maximum(sub_seq_len, c_sub)
 
             if self.training:
@@ -343,7 +351,12 @@ class RTDETRTransformerv2(nn.Module):
                  aux_loss=True, 
                  cross_attn_method='default', 
                  query_select_method='default',
-                 infer_adapt=False):
+                 infer_adapt=False,
+                 offset=50,
+                 lag=40,
+                 alpha=1.0,
+                 beta=0.4,
+                 gamma=0.4):
         super().__init__()
         assert len(feat_channels) <= num_levels
         assert len(feat_strides) == len(feat_channels)
@@ -351,6 +364,11 @@ class RTDETRTransformerv2(nn.Module):
         for _ in range(num_levels - len(feat_strides)):
             feat_strides.append(feat_strides[-1] * 2)
         self.infer_adapt = infer_adapt
+        self.offset=offset
+        self.lag = lag
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
         self.hidden_dim = hidden_dim
         self.nhead = nhead
         self.feat_strides = feat_strides
@@ -373,7 +391,7 @@ class RTDETRTransformerv2(nn.Module):
         # Transformer module
         decoder_layer = TransformerDecoderLayer(hidden_dim, nhead, dim_feedforward, dropout, \
             activation, num_levels, num_points, cross_attn_method=cross_attn_method)
-        self.decoder = TransformerDecoder(hidden_dim, decoder_layer, num_layers, eval_idx, infer_adapt)
+        self.decoder = TransformerDecoder(hidden_dim, decoder_layer, num_layers, eval_idx, infer_adapt,offset,lag,alpha,beta,gamma)
 
         # denoising
         self.num_denoising = num_denoising
@@ -609,7 +627,7 @@ class RTDETRTransformerv2(nn.Module):
             sub_seq_len = torch.tensor([q] * bs, device=init_ref_contents.device, dtype=torch.long)
         
             enc_topk_logits = torch.cat(enc_topk_logits_list)
-            sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len)
+            sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
         else:
             sub_seq_len = None
         # decoder

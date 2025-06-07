@@ -14,3 +14,7 @@ model.*
 modela.*
 *.jpg
 model*.*
+logs/*
+logs/*/*
+models
+models/*

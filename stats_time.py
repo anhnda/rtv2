@@ -1,10 +1,11 @@
 import os
-
+import time
 ONNX_EXPORT_PATTERN_V1 = "python tools/export_onnx.py -c configs/rtdetrv2/rtdetrv2_r%dvd_6x_coco.yml -r scheckpoint/rtdetrv2_r%dvd_6x_coco_ema.pth --check"
 RUNNING_CMD_PATTERN_V1 = "python tools/train.py -c configs/rtdetrv2/rtdetrv2_r%dvd_6x_coco.yml -r scheckpoint/rtdetrv2_r%dvd_6x_coco_ema.pth --test-only"
 SIZE_LIST = [18, 34, 50, 101]
 LOG_ROOT = "logs"
 MODEL_ROOT = "models"
+
 def get_eval_log_v1_sz(suffix="a", sz=50, n = 10):
     LOG_DIR = "%s/eval_%s" % (LOG_ROOT, suffix)
     os.makedirs(LOG_DIR, exist_ok=True)
@@ -27,6 +28,18 @@ def engine_export(suffix="a", sz=50):
     os.system(cmd)
     cmd = "mv model.engine %s/model_%d_%s.engine" % (MODEL_ROOT, sz, suffix)
     os.system(cmd)
+def run_engine(suffix="a", sz=50, n = 10):
+    log_engine = "%s/trt_%s/" % (LOG_ROOT, suffix)
+    os.makedirs(log_engine, exist_ok=True)
+    log_engine = log_engine + "e_%d.txt" % sz
+    cmd = "python deploy_trt.py -trt %s/model_%d_%s.engine" % (MODEL_ROOT,  sz, suffix) + " >> " + log_engine
+    print("Run: ", cmd)
+    for i in range(n):
+        os.system(cmd)
+def run_engine_all(suffix="a", n= 10):
+    for sz in SIZE_LIST:
+        run_engine(suffix, sz, n)
+        
 def engine_export_all(suffix="a"):
     for sz in SIZE_LIST:
         engine_export(suffix,sz)
@@ -37,4 +50,5 @@ def get_eval_log_v1_all(suffix="a", n = 10):
 
 if __name__ == "__main__":
     # get_eval_log_v1_all(suffix="a",n=5)
-    engine_export_all(suffix="a")
+    # engine_export_all(suffix="o")
+    run_engine_all(suffix="a",n=5)

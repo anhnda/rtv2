@@ -271,7 +271,6 @@ class TransformerDecoder(nn.Module):
         dec_out_bboxes = []
         dec_out_logits = []
         ref_points_detach = F.sigmoid(ref_points_unact)
-
         output = target
         self.n_call += 1
         #c_sub = torch.tensor([100] * len(sub_seq_len), device=target.device)
@@ -627,7 +626,9 @@ class RTDETRTransformerv2(nn.Module):
             sub_seq_len = torch.tensor([q] * bs, device=init_ref_contents.device, dtype=torch.long)
         
             enc_topk_logits = torch.cat(enc_topk_logits_list)
+            # sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
             sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
+
         else:
             sub_seq_len = None
         # decoder

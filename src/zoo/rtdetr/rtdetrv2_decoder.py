@@ -627,7 +627,7 @@ class RTDETRTransformerv2(nn.Module):
         
             enc_topk_logits = torch.cat(enc_topk_logits_list)
             # sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
-            sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=100, lag=50, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
+            sub_seq_len = get_k_tensor_constrained(enc_topk_logits.max(-1)[0], offset=self.offset*2, lag=self.lag, sub_seq=sub_seq_len, alpha=self.alpha, beta=self.beta, gamma=self.gamma)
 
         else:
             sub_seq_len = None

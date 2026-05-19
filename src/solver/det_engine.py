@@ -104,7 +104,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, data_loader, coco_evaluator: CocoEvaluator, device, infer_adapt=False):
+def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, data_loader, coco_evaluator: CocoEvaluator, device, infer_adapt=False, noise=0):
     model.eval()
     criterion.eval()
     coco_evaluator.cleanup()
@@ -122,6 +122,9 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
             break
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+        if noise > 0:
+            samples = samples + torch.randn_like(samples) * (noise ** 0.5)
 
         outputs = model(samples)
         sub_seq_len = outputs['aux_sub_seq_len']

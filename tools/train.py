@@ -51,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-dir', type=str, help='output directoy')
     parser.add_argument('--summary-dir', type=str, help='tensorboard summry')
     parser.add_argument('--test-only', action='store_true', default=False,)
+    parser.add_argument('--noise', type=float, default=0, help='white noise variance added to each image during eval')
 
     # priority 1
     parser.add_argument('-u', '--update', nargs='+', help='update yaml config')

@@ -124,7 +124,8 @@ class DetSolver(BaseSolver):
         module = self.ema.module if self.ema else self.model
         print("Infer adapt: ", self.model.decoder.infer_adapt )
         test_stats, coco_evaluator = evaluate(module, self.criterion, self.postprocessor,
-                self.val_dataloader, self.evaluator, self.device, self.model.decoder.infer_adapt)
+                self.val_dataloader, self.evaluator, self.device, self.model.decoder.infer_adapt,
+                noise=self.cfg.noise)
                 
         if self.output_dir:
             dist_utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, self.output_dir / "eval.pth")

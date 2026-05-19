@@ -59,7 +59,7 @@ RTDETRTransformerv2:
 
   eval_idx: -1
   infer_adapt: True
-  offset: 100
+  offset: 120
   lag: 40 
   alpha: 1.0
   beta: 0.4
